@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Data (large files, cached)
+data/raw/*.smi
+data/raw/*.csv
+data/raw/*.txt
+data/fragments/*.pkl
+
+# Training outputs
+wandb/
+*.pt
+*.pth
+checkpoints/
+runs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Logs
+*.log
