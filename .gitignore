@@ -49,3 +49,6 @@ runs/
 
 # Logs
 *.log
+
+# Development tracking
+ROADMAP.md

@@ -145,3 +145,17 @@ Before full training, **overfit a sanity check:**
 - Tiny vocab (`V ≈ 20`), `N_max=4`, fixed dummy reward
 - Confirm TB loss drives `log_Z → log Σ_x R(x)`
 - Validates plumbing (state stepping, policy masking, reward computation) before chemistry matters
+
+## Development Workflow
+
+**IMPORTANT:** This project uses ROADMAP.md to track implementation progress.
+
+When working on this codebase:
+1. **Check ROADMAP.md** before starting work to see current status
+2. **Update ROADMAP.md** after completing each module/phase:
+   - Mark items as complete with [x]
+   - Update "Current Status" section
+   - Add any blockers or notes
+3. **Reference ROADMAP.md** when user asks "what's next" or "where are we"
+
+The roadmap follows 8 phases from data preparation through evaluation. Always keep it up-to-date.
