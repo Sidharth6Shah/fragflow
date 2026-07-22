@@ -71,11 +71,11 @@ class GFlowNetTrainer:
         # Environment
         self.env = MoleculeEnv(self.vocab, max_frags=config.max_frags)
 
-        # Get block embeddings (cached)
-        self.block_embs = self.frag_embed()
-
     def sample_trajectory(self) -> Trajectory:
         """Sample single trajectory using forward policy."""
+        # Get fresh block embeddings (avoid reusing cached gradients)
+        block_embs = self.frag_embed()
+
         states = []
         actions = []
         log_pfs = []
@@ -96,7 +96,7 @@ class GFlowNetTrainer:
 
             # Forward policy
             log_probs, num_actions = self.forward_policy(
-                h_G, h_ap, self.block_embs, state, self.vocab
+                h_G, h_ap, block_embs, state, self.vocab
             )
 
             # Sample action
