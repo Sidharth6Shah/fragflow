@@ -126,29 +126,19 @@ class GFlowNetTrainer:
         return Trajectory(states, actions, log_pfs, reward)
 
     def compute_tb_loss(self, trajectories: List[Trajectory]) -> torch.Tensor:
-        """
-        Simplified TB loss.
-
-        Full implementation needs:
-        - Proper backward probabilities
-        - Flow matching over full trajectory
-        - Integration with torchgfn library
-
-        This is a placeholder that computes basic policy loss.
-        """
-        total_loss = 0.0
-
+        """Simplified TB loss."""
+        losses = []
+        
         for traj in trajectories:
             # Sum log P_F over trajectory
             log_pf_sum = sum(traj.log_pfs)
-
+            
             # Simple loss: encourage high-reward trajectories
-            # Real TB loss is more complex
             loss = -(traj.reward * log_pf_sum)
-
-            total_loss += loss
-
-        return total_loss / len(trajectories)
+            losses.append(loss)
+        
+        # Stack and mean
+        return torch.stack(losses).mean()
 
     def train(self):
         """Main training loop."""
