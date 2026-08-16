@@ -42,6 +42,12 @@ class GFlowNetTrainer:
     def __init__(self, config: TrainingConfig):
         self.config = config
 
+        # Device detection: CUDA > CPU (MPS disabled due to PyTorch bugs)
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+        else:
+            self.device = torch.device("cpu")
+
         # Load vocab
         project_root = Path(__file__).parent.parent
         self.vocab = prepare_vocabulary(
@@ -51,13 +57,13 @@ class GFlowNetTrainer:
         )
 
         # Initialize models
-        self.frag_embed = FragmentEmbedding(self.vocab, d=config.d)
-        self.encoder = StateEncoder(d=config.d, num_layers=config.num_gnn_layers)
-        self.forward_policy = ForwardPolicy(d=config.d)
-        self.backward_policy = BackwardPolicy(d=config.d)
+        self.frag_embed = FragmentEmbedding(self.vocab, d=config.d).to(self.device)
+        self.encoder = StateEncoder(d=config.d, num_layers=config.num_gnn_layers).to(self.device)
+        self.forward_policy = ForwardPolicy(d=config.d).to(self.device)
+        self.backward_policy = BackwardPolicy(d=config.d).to(self.device)
 
         # log_Z parameter
-        self.log_Z = nn.Parameter(torch.zeros(1))
+        self.log_Z = nn.Parameter(torch.zeros(1, device=self.device))
 
         # Optimizer
         params = (
@@ -83,10 +89,10 @@ class GFlowNetTrainer:
         for state in states:
             if len(state.frags) == 0:
                 # Source state: no backward transition
-                log_pbs.append(torch.tensor(0.0))
+                log_pbs.append(torch.tensor(0.0, device=self.device))
             else:
                 # Encode state
-                data = state_to_pyg(state, self.vocab)
+                data = state_to_pyg(state, self.vocab).to(self.device)
                 h_v, h_G = self.encoder(data)
 
                 # Backward policy over removable leaves
@@ -99,7 +105,7 @@ class GFlowNetTrainer:
                     log_pb = log_probs[-1]
                 else:
                     # Fallback: log prob of 0 (prob=1, deterministic)
-                    log_pb = torch.tensor(0.0)
+                    log_pb = torch.tensor(0.0, device=self.device)
 
                 log_pbs.append(log_pb)
 
@@ -121,7 +127,7 @@ class GFlowNetTrainer:
             states.append(state)
 
             # Encode state
-            data = state_to_pyg(state, self.vocab)
+            data = state_to_pyg(state, self.vocab).to(self.device)
             h_v, h_G = self.encoder(data)
 
             # Get AP embeddings
@@ -190,6 +196,7 @@ class GFlowNetTrainer:
     def train(self):
         """Main training loop."""
         print(f"Starting training with config: {self.config}")
+        print(f"Device: {self.device}")
         print(f"Vocab size: {len(self.vocab.base_fragments)}")
         print(f"Expanded vocab: {len(self.vocab.expanded_entries)}")
 
