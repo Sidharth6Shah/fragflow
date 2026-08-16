@@ -248,10 +248,54 @@ def prepare_vocabulary(
     smiles_list = load_zinc250k(data_dir, subset_size)
 
     if len(smiles_list) == 0:
-        print("WARNING: No SMILES loaded. Creating minimal dummy vocab for testing.")
-        # Dummy vocab for testing
-        base_fragments = ["[*]C", "[*]CC", "[*]c1ccccc1"]
-        ap_counts = [1, 1, 1]
+        print(f"WARNING: No SMILES loaded. Creating dummy vocab with {top_k} fragments for testing.")
+        # Create synthetic test vocab with diverse fragments
+        base_fragments = []
+        ap_counts = []
+
+        # Simple alkyl chains with 1-2 APs
+        base_fragments.extend([
+            "[*]C", "[*]CC", "[*]CCC", "[*]CCCC",
+            "[*]C([*])C", "[*]CC([*])C"
+        ])
+        ap_counts.extend([1, 1, 1, 1, 2, 2])
+
+        # Aromatic rings with 1-3 APs
+        base_fragments.extend([
+            "[*]c1ccccc1", "[*]c1ccc([*])cc1", "[*]c1cc([*])cc([*])c1"
+        ])
+        ap_counts.extend([1, 2, 3])
+
+        # Heterocycles with 1-2 APs
+        base_fragments.extend([
+            "[*]c1ccncc1", "[*]c1cccnc1", "[*]c1nc([*])ccn1"
+        ])
+        ap_counts.extend([1, 1, 2])
+
+        # Functional groups with 1-2 APs
+        base_fragments.extend([
+            "[*]CO", "[*]C(=O)C", "[*]C(=O)N([*])C", "[*]OC"
+        ])
+        ap_counts.extend([1, 1, 2, 1])
+
+        # Cycloalkanes with 1-3 APs
+        base_fragments.extend([
+            "[*]C1CCCC1", "[*]C1([*])CCCC1", "[*]C1CCC([*])CC1"
+        ])
+        ap_counts.extend([1, 2, 2])
+
+        # Additional diversity (if needed)
+        while len(base_fragments) < top_k:
+            # Add methylated variants
+            idx = len(base_fragments) % 5
+            base_fragments.append(f"[*]C({'C' * idx})C")
+            ap_counts.append(1)
+
+        # Trim to exact size
+        base_fragments = base_fragments[:top_k]
+        ap_counts = ap_counts[:top_k]
+
+        print(f"Created {len(base_fragments)} synthetic fragments")
     else:
         # Steps 3-5: Build base vocabulary
         base_fragments, ap_counts = build_base_vocabulary(smiles_list, top_k=top_k)
