@@ -23,7 +23,7 @@ from models.state_encoder import StateEncoder
 from models.forward_policy import ForwardPolicy
 from models.backward_policy import BackwardPolicy
 from reward.reward_fn import compute_reward
-from training.config import TrainingConfig, MILESTONE_CONFIG
+from training.config import TrainingConfig, FULL_CONFIG
 
 
 @dataclass
@@ -42,7 +42,7 @@ class GFlowNetTrainer:
     def __init__(self, config: TrainingConfig):
         self.config = config
 
-        # Device detection: CUDA > CPU (MPS disabled due to PyTorch bugs)
+        # Device detection: CUDA > CPU (MPS has PyTorch bugs with empty tensors)
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
         else:
@@ -247,7 +247,7 @@ class GFlowNetTrainer:
 
 
 if __name__ == "__main__":
-    # Run milestone training
-    config = MILESTONE_CONFIG
+    # Run full training
+    config = FULL_CONFIG
     trainer = GFlowNetTrainer(config)
     trainer.train()

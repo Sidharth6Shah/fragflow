@@ -58,5 +58,5 @@ FULL_CONFIG = TrainingConfig(
     batch_size=32,
     num_iterations=50000,
     reward_mode="full",
-    wandb_enabled=True
+    wandb_enabled=False  # Enable if wandb configured
 )
