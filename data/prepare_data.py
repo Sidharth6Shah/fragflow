@@ -253,43 +253,96 @@ def prepare_vocabulary(
         base_fragments = []
         ap_counts = []
 
-        # Simple alkyl chains with 1-2 APs
-        base_fragments.extend([
-            "[*]C", "[*]CC", "[*]CCC", "[*]CCCC",
-            "[*]C([*])C", "[*]CC([*])C"
-        ])
-        ap_counts.extend([1, 1, 1, 1, 2, 2])
+        # Alkyl chains (1-2 APs)
+        for n in range(1, 8):
+            base_fragments.append(f"[*]{'C' * n}")
+            ap_counts.append(1)
+        for n in range(2, 6):
+            base_fragments.append(f"[*]{'C' * n}([*])C")
+            ap_counts.append(2)
 
-        # Aromatic rings with 1-3 APs
+        # Benzene derivatives (1-4 APs)
         base_fragments.extend([
-            "[*]c1ccccc1", "[*]c1ccc([*])cc1", "[*]c1cc([*])cc([*])c1"
+            "[*]c1ccccc1", "[*]c1ccc([*])cc1", "[*]c1cc([*])ccc1[*]",
+            "[*]c1cc([*])cc([*])c1", "[*]c1c([*])cc([*])cc1[*]"
         ])
-        ap_counts.extend([1, 2, 3])
+        ap_counts.extend([1, 2, 3, 3, 4])
 
-        # Heterocycles with 1-2 APs
+        # Pyridine derivatives (1-3 APs)
         base_fragments.extend([
-            "[*]c1ccncc1", "[*]c1cccnc1", "[*]c1nc([*])ccn1"
+            "[*]c1ccncc1", "[*]c1cccnc1", "[*]c1cnccc1",
+            "[*]c1cc([*])ncc1", "[*]c1nc([*])ccc1"
         ])
-        ap_counts.extend([1, 1, 2])
+        ap_counts.extend([1, 1, 1, 2, 2])
 
-        # Functional groups with 1-2 APs
+        # Pyrrole/Imidazole/Pyrazole (1-2 APs)
         base_fragments.extend([
-            "[*]CO", "[*]C(=O)C", "[*]C(=O)N([*])C", "[*]OC"
-        ])
-        ap_counts.extend([1, 1, 2, 1])
-
-        # Cycloalkanes with 1-3 APs
-        base_fragments.extend([
-            "[*]C1CCCC1", "[*]C1([*])CCCC1", "[*]C1CCC([*])CC1"
+            "[*]c1cc[nH]c1", "[*]c1cn([*])cn1", "[*]c1cnn([*])c1"
         ])
         ap_counts.extend([1, 2, 2])
 
-        # Additional diversity (if needed)
+        # Furan/Thiophene (1-2 APs)
+        base_fragments.extend([
+            "[*]c1ccoc1", "[*]c1coc([*])c1", "[*]c1ccsc1", "[*]c1csc([*])c1"
+        ])
+        ap_counts.extend([1, 2, 1, 2])
+
+        # Functional groups (1-2 APs)
+        base_fragments.extend([
+            "[*]CO", "[*]CCO", "[*]C(=O)C", "[*]C(=O)CC",
+            "[*]C(=O)N", "[*]C(=O)N([*])C", "[*]OC", "[*]N([*])C",
+            "[*]S(=O)(=O)C", "[*]C#N"
+        ])
+        ap_counts.extend([1, 1, 1, 1, 1, 2, 1, 2, 1, 1])
+
+        # Cycloalkanes (1-3 APs)
+        base_fragments.extend([
+            "[*]C1CCC1", "[*]C1CCCC1", "[*]C1CCCCC1",
+            "[*]C1([*])CCCC1", "[*]C1CCC([*])CC1", "[*]C1([*])CCC([*])C1"
+        ])
+        ap_counts.extend([1, 1, 1, 2, 2, 3])
+
+        # Halogenated (1 AP)
+        base_fragments.extend([
+            "[*]CF", "[*]CCF", "[*]C(F)(F)F", "[*]CCl", "[*]CBr"
+        ])
+        ap_counts.extend([1, 1, 1, 1, 1])
+
+        # Amines (1-2 APs)
+        base_fragments.extend([
+            "[*]CN", "[*]CCN", "[*]N([*])CC", "[*]CNC"
+        ])
+        ap_counts.extend([1, 1, 2, 1])
+
+        # Ethers (1-2 APs)
+        base_fragments.extend([
+            "[*]COC", "[*]CCOC", "[*]COC([*])C"
+        ])
+        ap_counts.extend([1, 1, 2])
+
+        # Additional diversity - systematic generation
         while len(base_fragments) < top_k:
-            # Add methylated variants
-            idx = len(base_fragments) % 5
-            base_fragments.append(f"[*]C({'C' * idx})C")
-            ap_counts.append(1)
+            idx = len(base_fragments)
+            if idx % 4 == 0:
+                # More alkyl chains
+                n = (idx // 4) % 6 + 1
+                base_fragments.append(f"[*]{'C' * n}C")
+                ap_counts.append(1)
+            elif idx % 4 == 1:
+                # Branched alkyl
+                n = (idx // 4) % 4 + 2
+                base_fragments.append(f"[*]C({'C' * n})C")
+                ap_counts.append(1)
+            elif idx % 4 == 2:
+                # Substituted benzene
+                n = (idx // 4) % 3 + 1
+                base_fragments.append(f"[*]c1ccc({'C' * n})cc1")
+                ap_counts.append(1)
+            else:
+                # Substituted pyridine
+                n = (idx // 4) % 3 + 1
+                base_fragments.append(f"[*]c1ccc({'C' * n})nc1")
+                ap_counts.append(1)
 
         # Trim to exact size
         base_fragments = base_fragments[:top_k]
