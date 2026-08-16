@@ -32,6 +32,7 @@ class Trajectory:
     states: List
     actions: List
     log_pfs: List  # log P_F for each action
+    log_pbs: List  # log P_B for each state (backward from state)
     reward: float
 
 
@@ -70,6 +71,39 @@ class GFlowNetTrainer:
 
         # Environment
         self.env = MoleculeEnv(self.vocab, max_frags=config.max_frags)
+
+    def _compute_backward_logprobs(self, states: List, block_embs: torch.Tensor) -> List:
+        """
+        Compute backward log probabilities for trajectory.
+
+        For each state s_t (except source), compute P_B of removing the last added fragment.
+        """
+        log_pbs = []
+
+        for state in states:
+            if len(state.frags) == 0:
+                # Source state: no backward transition
+                log_pbs.append(torch.tensor(0.0))
+            else:
+                # Encode state
+                data = state_to_pyg(state, self.vocab)
+                h_v, h_G = self.encoder(data)
+
+                # Backward policy over removable leaves
+                log_probs, num_actions = self.backward_policy(h_v, state)
+
+                # For simplified implementation: assume uniform backward policy
+                # (Last added fragment is always the most recent one)
+                if num_actions > 0:
+                    # Pick the last fragment (index -1)
+                    log_pb = log_probs[-1]
+                else:
+                    # Fallback: log prob of 0 (prob=1, deterministic)
+                    log_pb = torch.tensor(0.0)
+
+                log_pbs.append(log_pb)
+
+        return log_pbs
 
     def sample_trajectory(self) -> Trajectory:
         """Sample single trajectory using forward policy."""
@@ -116,6 +150,9 @@ class GFlowNetTrainer:
             # Step
             state, done = self.env.step(action)
 
+        # Compute backward log probabilities
+        log_pbs = self._compute_backward_logprobs(states, block_embs)
+
         # Compute reward
         reward = compute_reward(
             state, self.vocab,
@@ -123,21 +160,31 @@ class GFlowNetTrainer:
             mode=self.config.reward_mode
         )
 
-        return Trajectory(states, actions, log_pfs, reward)
+        return Trajectory(states, actions, log_pfs, log_pbs, reward)
 
     def compute_tb_loss(self, trajectories: List[Trajectory]) -> torch.Tensor:
-        """Simplified TB loss."""
+        """
+        Trajectory Balance loss.
+
+        TB objective: log Z + sum(log P_F) - sum(log P_B) = log R(x)
+        Loss: MSE of the balance equation
+        """
         losses = []
-        
+
         for traj in trajectories:
-            # Sum log P_F over trajectory
-            log_pf_sum = sum(traj.log_pfs)
-            
-            # Simple loss: encourage high-reward trajectories
-            loss = -(traj.reward * log_pf_sum)
+            # Sum log probabilities
+            log_pf_sum = sum(traj.log_pfs)  # Forward trajectory
+            log_pb_sum = sum(traj.log_pbs)  # Backward trajectory
+
+            # TB balance equation residual
+            # log Z + log P_F - log P_B should equal log R
+            balance = self.log_Z + log_pf_sum - log_pb_sum - traj.reward
+
+            # Squared error
+            loss = balance ** 2
             losses.append(loss)
-        
-        # Stack and mean
+
+        # Mean over batch
         return torch.stack(losses).mean()
 
     def train(self):
