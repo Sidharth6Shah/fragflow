@@ -174,6 +174,11 @@ def state_to_molecule(state: FragState, vocab: FragmentVocab) -> Optional[Chem.M
     This is called at terminal states (after Stop action) to build the
     complete molecule for reward computation.
 
+    Properly connects fragments by:
+    1. Tracking dummy atom positions for each fragment
+    2. Creating bonds between dummy atoms as specified in state.bonds
+    3. Removing dummy atoms after bonding
+
     Args:
         state: Terminal fragment state
         vocab: Fragment vocabulary
@@ -196,36 +201,99 @@ def state_to_molecule(state: FragState, vocab: FragmentVocab) -> Optional[Chem.M
                 return None
             frag_mols.append(mol)
 
-        # If single fragment, just sanitize and return
+        # If single fragment, remove dummy atoms and return
         if len(frag_mols) == 1:
             try:
-                Chem.SanitizeMol(frag_mols[0])
-                return frag_mols[0]
+                # Remove dummy atoms ([*])
+                mol = frag_mols[0]
+                edit_mol = Chem.EditableMol(mol)
+
+                # Find dummy atoms (atomic number 0) and remove them
+                dummy_indices = [atom.GetIdx() for atom in mol.GetAtoms() if atom.GetAtomicNum() == 0]
+                for idx in sorted(dummy_indices, reverse=True):
+                    edit_mol.RemoveAtom(idx)
+
+                result = edit_mol.GetMol()
+                Chem.SanitizeMol(result)
+                return result
             except Exception:
                 return None
 
-        # Combine fragments using bonds
-        # This is complex - BRICS provides reconstruction helpers
-        # For now, use a simplified approach:
-        # Build a combined mol and track which dummy atoms should be connected
+        # Track dummy atom indices for each fragment
+        # dummy_atoms[frag_idx][ap_slot] = global_atom_idx in combined mol
+        dummy_atoms = []
+        atom_offset = 0
 
+        for frag_idx, mol in enumerate(frag_mols):
+            # Find dummy atoms in this fragment (ordered by atom index)
+            dummies_in_frag = []
+            for atom in mol.GetAtoms():
+                if atom.GetAtomicNum() == 0:  # Dummy atom [*]
+                    global_idx = atom_offset + atom.GetIdx()
+                    dummies_in_frag.append(global_idx)
+
+            dummy_atoms.append(dummies_in_frag)
+            atom_offset += mol.GetNumAtoms()
+
+        # Combine all fragments
         combined = frag_mols[0]
         for mol in frag_mols[1:]:
             combined = Chem.CombineMols(combined, mol)
 
-        # Track dummy atom indices for each fragment
-        # Note: This is a simplified version - full implementation requires
-        # careful tracking of atom indices across CombineMols operations
-
         # Get editable mol
         em = Chem.EditableMol(combined)
 
-        # For each bond in state.bonds, connect the appropriate dummy atoms
-        # and then remove them
-        # (This requires careful index tracking - simplified here)
+        # For each bond in state.bonds, connect the dummy atoms
+        bonds_to_create = []
+        dummies_to_remove = set()
 
-        # For now, just try to sanitize the combined structure
-        # A full implementation would properly connect fragments
+        for (frag_i, ap_i, frag_j, ap_j) in state.bonds:
+            # Get dummy atom indices
+            dummy_i = dummy_atoms[frag_i][ap_i]
+            dummy_j = dummy_atoms[frag_j][ap_j]
+
+            # Get the atoms bonded to the dummy atoms
+            mol = combined
+
+            # Find neighbor of dummy_i (the "real" atom)
+            atom_i_neighbors = [n.GetIdx() for n in mol.GetAtomWithIdx(dummy_i).GetNeighbors()]
+            if len(atom_i_neighbors) != 1:
+                continue
+            real_atom_i = atom_i_neighbors[0]
+
+            # Find neighbor of dummy_j
+            atom_j_neighbors = [n.GetIdx() for n in mol.GetAtomWithIdx(dummy_j).GetNeighbors()]
+            if len(atom_j_neighbors) != 1:
+                continue
+            real_atom_j = atom_j_neighbors[0]
+
+            # Record bond to create (will do after removing dummies)
+            bonds_to_create.append((real_atom_i, real_atom_j))
+            dummies_to_remove.add(dummy_i)
+            dummies_to_remove.add(dummy_j)
+
+        # Remove dummy atoms (in reverse order to preserve indices)
+        all_dummies = set()
+        for dummies_list in dummy_atoms:
+            all_dummies.update(dummies_list)
+
+        # Build index mapping (old_idx -> new_idx after removals)
+        sorted_dummies = sorted(all_dummies, reverse=True)
+        idx_map = {}
+        for i in range(combined.GetNumAtoms()):
+            removed_before = sum(1 for d in sorted_dummies if d > i)
+            idx_map[i] = i - removed_before
+
+        # Remove dummies
+        for dummy_idx in sorted_dummies:
+            em.RemoveAtom(dummy_idx)
+
+        # Add bonds between real atoms (with updated indices)
+        for (atom_i, atom_j) in bonds_to_create:
+            new_i = idx_map[atom_i]
+            new_j = idx_map[atom_j]
+            em.AddBond(new_i, new_j, Chem.BondType.SINGLE)
+
         result = em.GetMol()
 
         try:
