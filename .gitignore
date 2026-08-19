@@ -32,6 +32,7 @@ data/fragments/*.pkl
 
 # Samples
 evaluation/sampled_molecules.pkl
+evaluation/metrics.pkl
 
 # Training outputs
 wandb/
