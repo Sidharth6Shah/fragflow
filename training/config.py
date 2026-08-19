@@ -29,7 +29,9 @@ class TrainingConfig:
 
     # Reward
     beta: float = 1.0  # temperature
-    reward_mode: str = "dummy"  # "dummy" or "full"
+    reward_mode: str = "dummy"  # "dummy", "full", or "scaffold"
+    scaffold_smarts: str = None  # SMARTS pattern for scaffold constraint
+    scaffold_weight: float = 0.3  # Weight for scaffold bonus
 
     # Logging
     log_every: int = 100
@@ -51,12 +53,26 @@ MILESTONE_CONFIG = TrainingConfig(
     wandb_enabled=False
 )
 
-# Full training config
+# Full training config (v2 with gradient clipping)
 FULL_CONFIG = TrainingConfig(
     vocab_size=200,
     max_frags=8,
     batch_size=32,
     num_iterations=50000,
     reward_mode="full",
+    beta=4.0,  # Increased from 1.0 for better exploration
     wandb_enabled=False  # Enable if wandb configured
+)
+
+# Scaffold-constrained config: Generate molecules containing benzene ring
+SCAFFOLD_CONFIG = TrainingConfig(
+    vocab_size=200,
+    max_frags=8,
+    batch_size=32,
+    num_iterations=20000,
+    reward_mode="scaffold",
+    beta=4.0,
+    scaffold_smarts="c1ccccc1",  # Benzene ring
+    scaffold_weight=0.4,  # 40% weight on scaffold presence
+    wandb_enabled=False
 )

@@ -163,7 +163,9 @@ class GFlowNetTrainer:
         reward = compute_reward(
             state, self.vocab,
             beta=self.config.beta,
-            mode=self.config.reward_mode
+            mode=self.config.reward_mode,
+            scaffold_smarts=self.config.scaffold_smarts,
+            scaffold_weight=self.config.scaffold_weight
         )
 
         return Trajectory(states, actions, log_pfs, log_pbs, reward)
@@ -213,6 +215,10 @@ class GFlowNetTrainer:
             # Update
             self.optimizer.zero_grad()
             loss.backward()
+
+            # Gradient clipping to prevent explosion
+            torch.nn.utils.clip_grad_norm_(params, max_norm=1.0)
+
             self.optimizer.step()
 
             # Log
