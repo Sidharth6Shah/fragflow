@@ -30,6 +30,9 @@ data/raw/*.csv
 data/raw/*.txt
 data/fragments/*.pkl
 
+# Samples
+evaluation/sampled_molecules.pkl
+
 # Training outputs
 wandb/
 *.pt
