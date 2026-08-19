@@ -24,7 +24,9 @@ def compute_reward(
     state: FragState,
     vocab: FragmentVocab,
     beta: float = 1.0,
-    mode: str = "dummy"
+    mode: str = "dummy",
+    scaffold_smarts: str = None,
+    scaffold_weight: float = 0.3
 ) -> float:
     """
     Compute reward for terminal state.
@@ -33,7 +35,9 @@ def compute_reward(
         state: Terminal fragment state
         vocab: Fragment vocabulary
         beta: Temperature parameter
-        mode: "dummy" or "full"
+        mode: "dummy", "full", or "scaffold"
+        scaffold_smarts: Optional SMARTS pattern for scaffold constraint
+        scaffold_weight: Weight for scaffold bonus (0-1)
 
     Returns:
         Log-space reward for TB
@@ -50,7 +54,14 @@ def compute_reward(
         return 1.0  # Simple constant for testing
 
     # Full mode: QED + SA + LogP
-    return compute_full_reward(mol, beta)
+    if mode == "full":
+        return compute_full_reward(mol, beta)
+
+    # Scaffold mode: Full reward + scaffold constraint
+    if mode == "scaffold":
+        return compute_scaffold_reward(mol, beta, scaffold_smarts, scaffold_weight)
+
+    return beta * np.log(1e-4)
 
 
 def compute_full_reward(mol: Chem.Mol, beta: float = 1.0) -> float:
@@ -86,6 +97,54 @@ def compute_full_reward(mol: Chem.Mol, beta: float = 1.0) -> float:
 
     except Exception:
         # Error in reward computation
+        return beta * np.log(1e-4)
+
+
+def compute_scaffold_reward(
+    mol: Chem.Mol,
+    beta: float = 1.0,
+    scaffold_smarts: str = None,
+    scaffold_weight: float = 0.3
+) -> float:
+    """
+    Scaffold-constrained reward: Full reward + bonus for containing scaffold.
+
+    Args:
+        mol: RDKit molecule
+        beta: Temperature parameter
+        scaffold_smarts: SMARTS pattern for required scaffold
+        scaffold_weight: Weight for scaffold bonus (0-1)
+
+    Returns:
+        Log-space reward
+    """
+    try:
+        # Compute base reward (QED + SA + LogP)
+        q = QED.qed(mol)
+        sa_score = sascorer.calculateScore(mol)
+        s = np.clip((10 - sa_score) / 9.0, 0.0, 1.0)
+        logp = Descriptors.MolLogP(mol)
+        l = np.exp(-0.5 * ((logp - 2.5) / 2.0) ** 2)
+
+        # Base weighted combination
+        base_reward = 0.5 * q + 0.3 * s + 0.2 * l
+
+        # Scaffold constraint
+        scaffold_bonus = 0.0
+        if scaffold_smarts:
+            scaffold_mol = Chem.MolFromSmarts(scaffold_smarts)
+            if scaffold_mol and mol.HasSubstructMatch(scaffold_mol):
+                scaffold_bonus = 1.0  # Full bonus if scaffold present
+
+        # Combine: base reward * (1 - w) + scaffold bonus * w
+        R_raw = (1.0 - scaffold_weight) * base_reward + scaffold_weight * scaffold_bonus
+
+        # Log-space reward
+        logR = beta * np.log(R_raw + 1e-4)
+
+        return logR
+
+    except Exception:
         return beta * np.log(1e-4)
 
 
