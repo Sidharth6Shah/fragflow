@@ -73,6 +73,7 @@ class GFlowNetTrainer:
             list(self.backward_policy.parameters()) +
             [self.log_Z]
         )
+        self.params = params  # Store for gradient clipping
         self.optimizer = torch.optim.Adam(params, lr=config.lr)
 
         # Environment
@@ -217,7 +218,7 @@ class GFlowNetTrainer:
             loss.backward()
 
             # Gradient clipping to prevent explosion
-            torch.nn.utils.clip_grad_norm_(params, max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(self.params, max_norm=1.0)
 
             self.optimizer.step()
 
