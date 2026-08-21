@@ -57,10 +57,11 @@ MILESTONE_CONFIG = TrainingConfig(
 FULL_CONFIG = TrainingConfig(
     vocab_size=200,
     max_frags=8,
-    batch_size=32,
-    num_iterations=50000,
+    batch_size=16,  # Reduced from 32 for faster iteration
+    num_iterations=10000,  # Reduced from 50000 for initial training
     reward_mode="full",
     beta=4.0,  # Increased from 1.0 for better exploration
+    save_every=500,  # More frequent checkpoints for shorter training
     wandb_enabled=False  # Enable if wandb configured
 )
 
