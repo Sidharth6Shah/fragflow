@@ -232,6 +232,9 @@ class GFlowNetTrainer:
             if iteration % self.config.save_every == 0 and iteration > 0:
                 self.save_checkpoint(iteration)
 
+        # Save final checkpoint after training completes
+        self.save_checkpoint(self.config.num_iterations)
+
     def save_checkpoint(self, iteration: int):
         """Save model checkpoint."""
         checkpoint_dir = Path(self.config.checkpoint_dir)
