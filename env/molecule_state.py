@@ -281,7 +281,7 @@ def state_to_molecule(state: FragState, vocab: FragmentVocab) -> Optional[Chem.M
         sorted_dummies = sorted(all_dummies, reverse=True)
         idx_map = {}
         for i in range(combined.GetNumAtoms()):
-            removed_before = sum(1 for d in sorted_dummies if d > i)
+            removed_before = sum(1 for d in sorted_dummies if d < i)
             idx_map[i] = i - removed_before
 
         # Remove dummies
