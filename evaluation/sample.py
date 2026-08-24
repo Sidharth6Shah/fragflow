@@ -152,12 +152,21 @@ class MoleculeSampler:
 
 def main():
     """Sample molecules from checkpoint and save."""
-    checkpoint_path = "checkpoints/checkpoint_15000.pt"
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--checkpoint", type=str, default="checkpoints/checkpoint_10000.pt")
+    parser.add_argument("--num_samples", type=int, default=1000)
+    parser.add_argument("--vocab_size", type=int, default=200)
+    parser.add_argument("--max_frags", type=int, default=8)
+    args = parser.parse_args()
+
+    checkpoint_path = args.checkpoint
     output_path = "evaluation/sampled_molecules.pkl"
 
     # Sample molecules
-    sampler = MoleculeSampler(checkpoint_path, vocab_size=200, max_frags=8)
-    samples = sampler.sample_batch(num_samples=1000)
+    sampler = MoleculeSampler(checkpoint_path, vocab_size=args.vocab_size, max_frags=args.max_frags)
+    samples = sampler.sample_batch(num_samples=args.num_samples)
 
     # Save
     with open(output_path, 'wb') as f:
