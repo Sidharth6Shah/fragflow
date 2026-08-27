@@ -32,3 +32,19 @@ table of contents:
   - ssh into the gpu make the script executable, and run the script (it has instructions to git clone the repo, etc):
     '''chmod +x setup_and_train.sh'''
     '''./setup_and_train.sh'''
+
+
+4. check training progress
+- make check_training.sh executable:
+  '''chmod +x training_scripts/check_training.sh'''
+- run check_training.sh from local machine:
+  '''training_scripts/check_training.sh 129.213.94.230'''
+
+
+5. downloaded trained model weights:
+- after trainings done:
+  '''training_scripts/download_checkpoint.sh 129.213.94.230 10000'''
+- early download at iteration <ITERATION_NUMBER>:
+  '''training_scripts/download_checkpoint.sh 129.213.94.230 <ITERATION_NUMBER>'''
+- move the downloaded weights to the checkpoints folder:
+  '''mv ~/Downloads/checkpoint_10000.pt checkpoints/'''
