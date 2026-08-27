@@ -15,7 +15,7 @@ fi
 
 LAMBDA_IP=$1
 CHECKPOINT_NUM=${2:-10000}  # Default to 10000 if not specified
-SSH_KEY=~/.ssh/lambda_gpu
+SSH_KEY=~/.ssh/lambda-fragflow.pem
 CHECKPOINT_FILE="checkpoint_${CHECKPOINT_NUM}.pt"
 
 echo "=========================================="

@@ -14,7 +14,7 @@ if [ -z "$1" ]; then
 fi
 
 LAMBDA_IP=$1
-SSH_KEY=~/.ssh/lambda_gpu
+SSH_KEY=~/.ssh/lambda-fragflow.pem
 
 echo "=========================================="
 echo "FragFlow Training Status"
