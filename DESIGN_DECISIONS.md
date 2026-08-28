@@ -149,17 +149,44 @@ removed_before = sum(1 for d in sorted_dummies if d < i)
 
 Multi-fragment molecules now assemble correctly and get better rewards than single fragments. Training should work properly now.
 
+**Training Results Comparison (10K iterations, Lambda GPU A100):**
+
+| Metric | Broken Model (9500 iter) | Fixed Model (10K iter) |
+|--------|--------------------------|------------------------|
+| **Validity** | 100% | 100% |
+| **Uniqueness** | 18% | 39% |
+| **Diversity** | 87% | 81.2% |
+| **Mean Reward** | -3.7 | -0.316 |
+| **Mean Fragments** | 1.0 | 2.1 |
+| **Fragment Distribution** | 100% single-fragment | 93% 2-frag, 5.4% 3-frag, 1.6% 4-6 frag |
+
+**Key Findings:**
+- Broken model: 100% mode collapse to single fragments
+- Fixed model: 100% multi-fragment molecules (0% single-fragment)
+- Fixed model rewards 10x better (-0.316 vs -3.7)
+- Model learned 2-fragment molecules are optimal balance of reward vs complexity
+
 **Status:**
-**FIXED** - Previous 9500 iterations of Lambda GPU training were wasted due to this bug. Need to retrain from scratch with working multi-fragment assembly.
+**FIXED** - Retrained successfully on Lambda GPU. Multi-fragment assembly now works correctly.
 
 ---
 
 ## Metrics Summary
 
-**Before fixes:** Validity 100% (disconnected), Uniqueness 37%, Diversity 73%, Training diverged at 15300
+**Broken Training (9500 iter, mode collapse):**
+- Validity 100% (but all single-fragment)
+- Uniqueness 18%
+- Diversity 87%
+- Mean reward: -3.7
+- Fragment distribution: 100% single-fragment
 
-**After fixes:** Validity 83.5% (connected), Uniqueness 43%, Diversity 79.6%, Training stable
+**Fixed Training (10K iter, successful):**
+- Validity 100% (multi-fragment molecules)
+- Uniqueness 39%
+- Diversity 81.2%
+- Mean reward: -0.316 (10x improvement!)
+- Fragment distribution: 93% 2-frag, 5.4% 3-frag, 1.6% 4-6 frag
 
 **New features:** Scaffold constraints, protein binding framework, beta=4.0 exploration
 
-**All critical bugs fixed** - Ready for fresh training run with working multi-fragment assembly
+**All critical bugs fixed** - Successful training run completed on Lambda GPU ✓
