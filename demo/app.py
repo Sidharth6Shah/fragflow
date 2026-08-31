@@ -9,7 +9,7 @@ import base64
 from io import BytesIO
 
 # Setup
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 
 from rdkit import Chem
